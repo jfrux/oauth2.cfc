@@ -3,9 +3,12 @@
 A ColdFusion Component (CFC) wrapper for the OAuth 2.0 specification.
 
 ## Installation
-    Clone or download and extract the directory into your component directory under a directory titled 'oauth2'.
-    Create a per application mapping such as:
-    `<cfset this.mappings["/oauth2"] = "/my_components/oauth2" />`
+Clone or download and extract the directory into your component directory under a directory titled 'oauth2'.
+Create a per application mapping such as:
+```javascript
+// Application.cfc
+this.mappings["/oauth2"] = "/my_components/oauth2";
+```
 
 ## Resources
 * [View Source on GitHub][code]
