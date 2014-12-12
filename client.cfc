@@ -107,17 +107,11 @@ component accessors="true"
   **/
   property name="raise_errors" default=true;
 
-
   /**
   * @hint I return an initialized instance.
   * @description I return an initialize oauth2 object instance.
   **/
-  public oauth2.client function init(
-    required string client_id,
-    required string client_secret,
-    struct options
-  )
-  {
+  public oauth2.client function init( required string client_id, required string client_secret, struct options ) {
     var default_options = {
       authorize_url    : '/oauth/authorize',
       token_url        : '/oauth/token',
@@ -139,8 +133,8 @@ component accessors="true"
 
     getOption('connection_opts')['ssl'] = ssl;
 
-    setid(arguments.client_id);
-    setsecret(arguments.client_secret);
+    setId(arguments.client_id);
+    setSecret(arguments.client_secret);
     setToken_method(getOptions().token_method);
     setToken_url(getOptions().token_url);
     setAuthorize_url(getOptions().authorize_url);
@@ -149,16 +143,122 @@ component accessors="true"
     ssl = structKeyExists(opts,'ssl') ? opts.ssl : false;
     structDelete(opts,'ssl');
 
-
-
-
     return this;
   };
 
-  public http function httpConnection() {
-    var connection = new Http(getconnection_opts());
+  //MAKE STANDARD HTTP REQUEST
+  public function request(verb,theUrl,opts = {}) {
+    var conn = new Http(getconnection_opts());
+    var requestUrl = "";
+    var response = {};
 
-    return connection;
+    if (verb EQ "post") {
+      //add body fields for post
+      if (structCount(arguments.opts.fields)) {
+        for (key in arguments.opts.fields) {
+          conn.addParam(type='formfield',name=key,value=arguments.opts.fields[key]);
+        }
+
+        structDelete(arguments.opts,'fields');
+      }
+    }
+
+    // add headers
+    if (structCount(arguments.opts.headers)) {
+      for ((key) in arguments.opts.headers) {
+        conn.addParam(type='header',name=key,value=arguments.opts.headers[key]);
+      }
+
+      structDelete(arguments.opts,'headers');
+    }
+
+    if(arguments.theUrl CONTAINS "http") {
+      requestUrl = arguments.theUrl;
+    } else {
+      requestUrl = build_url(arguments.path,arguments.opts);
+    }
+
+    conn.setUrl(requestUrl);
+    conn.setMethod(verb);
+    conn.setRedirect(true);
+    httpResponse = conn.send().getPrefix();
+    response = new OAuth2.Response(httpResponse,arguments.opts);
+
+    if (isEmpty(response.status())) {
+      throw (
+        message = "Connection to the oAuth2 provider failed.",
+        type = "oauth2.no_response"
+      )
+    }
+    if (listFind('301,302,303,307',response.status())) {
+      //todo redirect logic here
+      // since setRedirect(true) it shouldn't ever show this
+      abort;
+    } else if (isValid("range", response.status(), 200, 299)) {
+      return response
+    } else if (isValid("range", response.status(), 400,499)) {
+      errorObj = deserializeJson(response.body());
+      throw (
+        message = errorObj.error & " - " & errorObj.error_description,
+        type = "oauth2.#errorObj.error#",
+        detail = response.errorDetail & "- " & requestUrl,
+        errorCode = response.status()
+      )
+    } else if (isValid("range", response.status(), 500,599)) {
+      writeOutput(response.body());
+      abort;
+    } else {
+      throw "Unhandled status code value of #response.status_code#";
+    }
+
+  }
+
+  //GET ACCESS_TOKEN
+  public oauth2.access_token function get_token(params = {}, access_token_opts = {}, access_token_class = 'oauth2.access_token') {
+    var opts = {};
+    var headers = {};
+    var parsed = {};
+    var access_token = {};
+    opts['raise_errors'] = getOption('raise_errors');
+    opts['parse'] = structkeyExists(arguments,'params') && structkeyExists(arguments.params,'parse') ? arguments.params.parse : false;
+
+    if (structKeyExists(arguments.params,'parse'))
+      structDelete(arguments.params,'parse');
+    if (getToken_method() EQ "post") {
+      headers = structKeyExists(arguments.params,'headers') ? params.headers : {};
+      opts['fields'] = arguments.params;
+      opts['headers'] = { 'Content-Type': 'application/x-www-form-urlencoded' };
+      structAppend(opts.headers,headers,true);
+    } else {
+      opts['params'] = arguments.params;
+    }
+
+    response = request(getOption('token_method'),build_token_url(),opts);
+    parsed = response.parsed();
+
+    if (getOption('raise_errors') && !(isStruct(parsed) && structKeyExists(parsed,'access_token'))) {
+      throw(type="oAuth2.UnknownError",message="Token could not be found in the response body.");
+      return false;
+    }
+    structAppend(parsed,arguments.access_token_opts);
+
+    access_token = createObject("component",arguments.access_token_class).from_hash(this,parsed);
+    return access_token;
+  }
+
+  //STRATEGY METHODS
+  public function password() {
+    return new oauth2.strategy.password(this);
+  }
+
+  public function auth_code() {
+    return new oauth2.strategy.auth_code(this);
+  }
+
+  //BUILD URL HELPERS
+  public function build_url(path,params = {}) {
+    var theUrl = "#getSite()##arguments.path#?#buildParamString(arguments.params)#";
+    return theUrl;
   };
 
   public function build_authorize_url(params = {}) {
@@ -176,84 +276,6 @@ component accessors="true"
     return theUrl;
   };
 
-  public function request(verb,theUrl,opts = {}) {
-    var conn = httpConnection();
-    var requestUrl = "";
-    var response = {};
-
-    if (verb EQ "post") {
-      // conn.addParam(type="body",value=serializeJson(arguments.opts.body));
-      if (structCount(arguments.opts.fields)) {
-        for (key in arguments.opts.fields) {
-          conn.addParam(type='formfield',name=key,value=arguments.opts.fields[key]);
-        }
-      }
-    }
-
-    if (structKeyExists(arguments.opts,'params')) {
-      for (key in arguments.opts.params) {
-        conn.addParam(arguments.opts.params[key]);
-        writeDump(var=arguments.opts.params,abort=true);
-      }
-      requestUrl = arguments.theUrl;
-    } else {
-      requestUrl = arguments.theUrl;
-    }
-    conn.setUrl(requestUrl);
-    conn.setMethod(verb);
-    conn.setRedirect(true);
-
-    response = conn.send().getPrefix();
-    writeDump(var=response,abort=true);
-    if (listFind('301,302,303,307',response.status_code)) {
-      //todo redirect logic here
-      // since setRedirect(true) it shouldn't ever show this
-      abort;
-    } else if (isValid("range", response.status_code, 200, 299)) {
-      return response.filecontent
-    } else if (isValid("range", response.status_code, 400,599)) {
-      errorObj = deserializeJson(response.filecontent);
-      throw (
-        message = errorObj.error & " - " & errorObj.error_description,
-        type = "oauth2.#errorObj.error#",
-        detail = response.errorDetail & "- " & requestUrl,
-        errorCode = response.status_code
-      )
-    } else {
-      throw "Unhandled status code value of #response.status_code#";
-    }
-
-  }
-
-  public function get_token(params = {}, access_token_opts = {}, access_token_class = 'oauth2.access_token') {
-    var opts = {};
-    var headers = {};
-    opts['raise_errors'] = getOption('raise_errors');
-    opts['parse'] = structkeyExists(arguments,'params') && structkeyExists(arguments.params,'parse') ? arguments.params.parse : false;
-
-    if (structKeyExists(arguments.params,'parse'))
-      structDelete(arguments.params,'parse');
-
-    if (getToken_method() EQ "post") {
-      headers = structKeyExists(arguments.params,'headers') ? params.headers : {};
-      opts['fields'] = arguments.params;
-      opts['headers'] = { 'Content-Type': 'application/x-www-form-urlencoded' };
-      structAppend(opts.headers,headers,true);
-    } else {
-      opts['params'] = arguments.params;
-    }
-
-    response = request(getOption('token_method'),build_token_url(),opts);
-  }
-
-  public function password() {
-    return new oauth2.strategy.password(this);
-  }
-
-  public function auth_code() {
-    return new oauth2.strategy.auth_code(this);
-  }
-
   public any function getOption(key) {
     var options = getOptions();
 
@@ -263,58 +285,8 @@ component accessors="true"
       throw "Option not available.";
     }
   }
-  /**
-  * @hint I return the URL as a string which we use to redirect the user for authentication.
-  * @description I return the URL as a string which we use to redirect the user for authentication.
-  * @parameters A structure containing key / value pairs of data to be included in the URL string.
-  **/
-  public string function buildRedirectToAuthURL( struct parameters={} ) {
-    return getAuthEndpoint() & '?client_id=' & getClient_id() & '&redirect_uri=' & getRedirect_uri() & buildParamString(argScope = arguments.parameters);
-  }
 
-  /**
-  * @hint I make the HTTP request to obtain the access token.
-  * @description I make the HTTP request to obtain the access token.
-  * @code The code returned from the authentication request.
-  **/
-  public struct function makeAccessTokenRequest( required string code ) {
-    var stuResponse = {};
-    httpService = new http();
-    httpService.setMethod("post");
-    httpService.setCharset("utf-8");
-    httpService.setUrl(getAccessTokenEndpoint());
-    httpService.addParam(type="formfield", name="client_id", 	 value="#getClient_id()#");
-    httpService.addParam(type="formfield", name="client_secret", value="#getClient_secret()#");
-    httpService.addParam(type="formfield", name="code", 		 value="#arguments.code#");
-    httpService.addParam(type="formfield", name="redirect_uri",  value="#getRedirect_uri()#");
-    result = httpService.send().getPrefix();
-    if('200' == result.ResponseHeader['Status_Code']) {
-      stuResponse.success = true;
-      stuResponse.content = result.FileContent;
-    } else {
-      stuResponse.success = false;
-      stuResponse.content = result.Statuscode;
-    }
-    return stuResponse;
-  }
-
-  /**
-  * @hint I return a string containing any extra URL parameters to concatenate and pass through when authenticating.
-  * @description I return a string containing any extra URL parameters to concatenate and pass through when authenticating.
-  * @argScope A structure containing key / value pairs of data to be included in the URL string.
-  **/
-  public string function buildParamString( struct params={} ) {
-    var strURLParam = '';
-    if(structCount(arguments.params)) {
-      for (key in arguments.params) {
-        if(listLen(strURLParam)) {
-          strURLParam = strURLParam & '&';
-        }
-        strURLParam = strURLParam & lcase(key) & '=' & trim(arguments.params[key]);
-      }
-      strURLParam = '&' & strURLParam;
-    }
-    return strURLParam;
-  }
+  include "utils/build_query_string.cfm";
+  include "utils/struct_delete_and_return.cfm";
 
 }

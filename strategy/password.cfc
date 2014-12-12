@@ -2,7 +2,7 @@ component extends="oauth2.strategy.base" {
   public function getAuthorize_url() {
     throw(type="oAuth2.not_implemented",message="The authorization endpoint is not used in this strategy.");
   }
-  public function get_token(username,password,params={},opts={}) {
+  public oauth2.access_token function get_token(username,password,params={},opts={}) {
     var oAuth2Client = getClient();
     var reqParams={
       'grant_type': 'password',
@@ -12,6 +12,6 @@ component extends="oauth2.strategy.base" {
 
     structAppend(reqParams,client_params());
 
-    oAuth2Client.get_token(params=reqParams,access_token_opts=arguments.opts);
+    return oAuth2Client.get_token(params=reqParams,access_token_opts=arguments.opts);
   }
 }
