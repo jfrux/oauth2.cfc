@@ -20,7 +20,7 @@ A ColdFusion Component (CFC) wrapper for the OAuth 2.0 specification.
 
 ### Install Example
 ```javascript
-// in Application.cfc
+// Application.cfc
 this.mappings["/oauth2"] = "/my_components/oauth2";
 ```
 
