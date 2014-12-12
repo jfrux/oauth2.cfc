@@ -15,9 +15,9 @@ this.mappings["/oauth2"] = "/my_components/oauth2";
 * [Report Issues on GitHub][issues]
 * [Read More at the Wiki][wiki]
 
-[code]: https://github.com/joshuairl/oauth2
-[issues]: https://github.com/joshuairl/oauth2/issues
-[wiki]: https://wiki.github.com/joshuairl/oauth2
+[code]: https://github.com/joshuairl/oauth2.cfc
+[issues]: https://github.com/joshuairl/oauth2.cfc/issues
+[wiki]: https://wiki.github.com/joshuairl/oauth2.cfc
 
 ## Usage Examples
 
