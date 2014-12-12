@@ -12,20 +12,20 @@ A ColdFusion Component (CFC) wrapper for the OAuth 2.0 specification.
 * [Report Issues on GitHub][issues]
 * [Read More at the Wiki][wiki]
 
-[code]: https://github.com/intridea/oauth2
-[issues]: https://github.com/intridea/oauth2/issues
-[wiki]: https://wiki.github.com/intridea/oauth2
+[code]: https://github.com/joshuairl/oauth2
+[issues]: https://github.com/joshuairl/oauth2/issues
+[wiki]: https://wiki.github.com/joshuairl/oauth2
 
 ## Usage Examples
 
 ### Install Example
-```coldfusion
-<!--- in Application.cfc --->
-<cfset this.mappings["/oauth2"] = "/my_components/oauth2" />
+```javascript
+// in Application.cfc
+this.mappings["/oauth2"] = "/my_components/oauth2";
 ```
 
 ### Client Instantiation
-```coldfusion
+```javascript
 oauth2client = new oauth2.client(
   client_id = '1201203123123',
   client_secret = 'jkf32ifj023fj102ijfdk12odk'), 
@@ -38,17 +38,14 @@ oauth2client = new oauth2.client(
 ```
 
 ### Username / Password Flow Example
-```coldfusion
-<cfscript>
+```javascript
 access_token = oauth2client.password().get_token(session.username, session.password);
-</cfscript>
 ```
 
 ### AuthCode Flow Example
-```coldfusion
-<cfscript>
+```javascript
 authorizeUrl = oauth2client.auth_code().getAuthorize_url({ redirect_url: 'http://localhost:8080/oauth2/callback' });
-# => "https://example.com/oauth/authorization?response_type=code&client_id=client_id&redirect_uri=http://localhost:8080/oauth2/callback"
+// returns "https://example.com/oauth/authorization?response_type=code&client_id=client_id&redirect_uri=http://localhost:8080/oauth2/callback"
 
 location(authorizeUrl); //redirect user to authorize_url
 
@@ -56,8 +53,7 @@ location(authorizeUrl); //redirect user to authorize_url
 token = client.auth_code.get_token('authorization_code_value', :redirect_uri => 'http://localhost:8080/oauth2/callback', :headers => {'Authorization' => 'Basic some_password'})
 response = token.get('/api/resource', :params => { 'query_foo' => 'bar' })
 response.class.name
-# => OAuth2::Response
-</cfscript>
+// returns OAuth2::Response
 ```
 
 ## OAuth2::Response
@@ -94,30 +90,30 @@ Currently the Authorization Code, Implicit, Resource Owner Password Credentials,
 authentication grant types have helper strategy classes that simplify client
 use.  They are available via the #auth_code, #implicit, #password, #client_credentials, and #assertion methods respectively.
 
-```coldfusion
-<cfscript>
-auth_url = client.auth_code.authorize_url(:redirect_uri => 'http://localhost:8080/oauth/callback')
-token = client.auth_code.get_token('code_value', :redirect_uri => 'http://localhost:8080/oauth/callback')
+```javascript
+auth_url = client.auth_code.authorize_url(:redirect_uri => 'http://localhost:8080/oauth/callback');
+token = client.auth_code.get_token('code_value', :redirect_uri => 'http://localhost:8080/oauth/callback');
 
-auth_url = client.implicit.authorize_url(:redirect_uri => 'http://localhost:8080/oauth/callback')
-# get the token params in the callback and
-token = OAuth2::AccessToken.from_kvform(client, query_string)
+auth_url = client.implicit.authorize_url(:redirect_uri => 'http://localhost:8080/oauth/callback');
+//get the token params in the callback and
+token = OAuth2::AccessToken.from_kvform(client, query_string);
 
-token = client.password.get_token('username', 'password')
+token = client.password.get_token('username', 'password');
 
-token = client.client_credentials.get_token
+token = client.client_credentials.get_token();
 
-token = client.assertion.get_token(assertion_params)
-</cfscript>
+token = client.assertion.get_token(assertion_params);
 ```
 
 If you want to specify additional headers to be sent out with the
 request, add a 'headers' hash under 'params':
 
-```coldfusion
-<cfscript>
-token = client.auth_code.get_token('code_value', :redirect_uri => 'http://localhost:8080/oauth/callback', :headers => {'Some' => 'Header'})
-</cfscript>
+```javascript
+token = client.auth_code.get_token(
+    code = 'code_value',
+    redirect_uri = 'http://localhost:8080/oauth/callback', 
+    headers = {'Some': 'Header'}
+);
 ```
 
 You can always use the #request method on the OAuth2::Client instance to make
