@@ -1,3 +1,0 @@
-= Passport.cfc
-== Passport is a framework independent oAuth2 Client / Consumer library for ColdFusion / CFML applications.
-It provides a basic oAuth2 client base and providers such as (Facebook, Twitter, etc.) are written as separate modules to be included as needed.
