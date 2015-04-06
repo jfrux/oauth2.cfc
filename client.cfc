@@ -34,7 +34,7 @@ component accessors="true"
   * @type struct
   * @hint opts to create the client with
   **/
-  property name="options" default=structNew();
+  property name="options";
 
   /**
   * @type http
@@ -89,7 +89,7 @@ component accessors="true"
   * @type struct
   * @hint ('{}') Hash of connection options to pass to initialize CFHTTP
   **/
-  property name="connection_opts" default=structNew();
+  property name="connection_opts";
 
   /**
   * @getter true
@@ -124,21 +124,25 @@ component accessors="true"
     var opts = duplicate(arguments.options);
     var ssl = false;
     structAppend(
-      default_options,
-      opts //passed in options minus a couple
-      ,true //true override defaults
+      opts,
+      default_options
+      ,false
     )
+
+    setOptions(opts);
+
     //merge options with defaults
-    setOptions(default_options);
-
-    getOption('connection_opts')['ssl'] = ssl;
-
     setId(arguments.client_id);
     setSecret(arguments.client_secret);
-    setToken_method(getOptions().token_method);
-    setToken_url(getOptions().token_url);
-    setAuthorize_url(getOptions().authorize_url);
-    setSite(getOptions().site);
+    setToken_method(getOption('token_method'));
+    setToken_url(getOption('token_url'));
+    setAuthorize_url(getOption('authorize_url'));
+    setSite(getOption('site'));
+    setConnection_opts(getOption('connection_opts'));
+
+    structDelete(opts,'connection_opts');
+
+    getConnection_opts()['ssl'] = ssl;
 
     ssl = structKeyExists(opts,'ssl') ? opts.ssl : false;
     structDelete(opts,'ssl');
@@ -148,11 +152,11 @@ component accessors="true"
 
   //MAKE STANDARD HTTP REQUEST
   public function request(verb,theUrl,opts = {}) {
-    var conn = new Http(getconnection_opts());
+    var conn = new Http();
     var requestUrl = "";
     var response = {};
 
-    if (verb EQ "post") {
+    <!--- if (verb EQ "post") {
       //add body fields for post
       if (structCount(arguments.opts.fields)) {
         for (key in arguments.opts.fields) {
@@ -161,7 +165,7 @@ component accessors="true"
 
         structDelete(arguments.opts,'fields');
       }
-    }
+    } --->
 
     // add headers
     if (structCount(arguments.opts.headers)) {
@@ -170,6 +174,11 @@ component accessors="true"
       }
 
       structDelete(arguments.opts,'headers');
+    }
+    if (structKeyExists(arguments.opts,'body')) {
+      <!--- conn.addParam(type='header',name='Content-Type',value='application.json; charset=UTF-8'); --->
+      conn.addParam(type='body',value=arguments.opts.body);
+      structDelete(arguments.opts,'body');
     }
 
     if(arguments.theUrl CONTAINS "http") {
@@ -181,7 +190,11 @@ component accessors="true"
     conn.setUrl(requestUrl);
     conn.setMethod(verb);
     conn.setRedirect(true);
+
     httpResponse = conn.send().getPrefix();
+    <!--- if(verb EQ "put") {
+      writeDump(var="#conn.send()#",abort=true,format="text");
+    } --->
     response = new OAuth2.Response(httpResponse,arguments.opts);
 
     if (isEmpty(response.status())) {
@@ -197,11 +210,10 @@ component accessors="true"
     } else if (isValid("range", response.status(), 200, 299)) {
       return response
     } else if (isValid("range", response.status(), 400,499)) {
-      errorObj = deserializeJson(response.body());
+      errorObj = response.body();
       throw (
-        message = errorObj.error & " - " & errorObj.error_description,
-        type = "oauth2.#errorObj.error#",
-        detail = response.errorDetail & "- " & requestUrl,
+        message = errorObj,
+        type = "oauth2.#response.status()#",
         errorCode = response.status()
       )
     } else if (isValid("range", response.status(), 500,599)) {
@@ -224,11 +236,17 @@ component accessors="true"
 
     if (structKeyExists(arguments.params,'parse'))
       structDelete(arguments.params,'parse');
-    if (getToken_method() EQ "post") {
-      headers = structKeyExists(arguments.params,'headers') ? params.headers : {};
-      opts['fields'] = arguments.params;
-      opts['headers'] = { 'Content-Type': 'application/x-www-form-urlencoded' };
+
+    headers = structDeleteAndReturn(arguments.params,'headers');
+    opts['headers'] = { 'Content-Type': 'application/x-www-form-urlencoded' };
+
+    if (isDefined("headers")) {
       structAppend(opts.headers,headers,true);
+    }
+
+    if (getToken_method() EQ "post") {
+      // headers = structKeyExists(arguments.params,'headers') ? headers : {};
+      opts['fields'] = arguments.params;
     } else {
       opts['params'] = arguments.params;
     }
@@ -261,8 +279,14 @@ component accessors="true"
     return theUrl;
   };
 
+  //getter for authorize_url
+  public function authorize_url(struct params = {}) {
+    return build_authorize_url(argumentCollection=arguments);
+  }
+
   public function build_authorize_url(params = {}) {
     var theUrl = "#getSite()##getAuthorize_url()#?#buildParamString(arguments.params)#";
+
     return theUrl;
   };
 

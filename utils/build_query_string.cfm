@@ -8,12 +8,12 @@ public string function buildParamString( struct params={} ) {
   var strURLParam = '';
   if(structCount(arguments.params)) {
     for (key in arguments.params) {
-      if(listLen(strURLParam)) {
+      if(listLen(strURLParam,'&') GT 0) {
         strURLParam = strURLParam & '&';
       }
       strURLParam = strURLParam & lcase(key) & '=' & trim(arguments.params[key]);
     }
-    strURLParam = '&' & strURLParam;
+    // strURLParam = '&' & strURLParam;
   }
   return strURLParam;
 }

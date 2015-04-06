@@ -32,7 +32,7 @@ component accessors="true" {
     setResponse(arguments.response);
     setOptions(arguments.opts);
     structAppend(getOptions(),{ 'parse': 'automatic' },false);
-    
+
     return this;
   }
 
@@ -101,6 +101,7 @@ component accessors="true" {
     'application/json': 'json',
     'text/javascript': 'json',
     'application/x-www-form-urlencoded': 'query',
-    'text/plain': 'text',
+    'text/html': 'text',
+    'text/plain': 'text'
   }
 }

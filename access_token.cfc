@@ -107,7 +107,6 @@ component accessors="true" {
     var client_object = {};
     structDelete(arguments.props,'access_token');
     var client_object = init(arguments.client_object,accessToken,arguments.props,newHash);
-    // writeDump(var=oauth2client,abort=true);
     return client_object;
   }
 
@@ -180,13 +179,13 @@ component accessors="true" {
   public function request(verb,path,opts = {}) {
     var client_object = getClient_object();
 
-    arguments.params = structureOptions(arguments.opts);
-
+    arguments.opts = structureOptions(arguments.opts);
     return client_object.request(argumentCollection=arguments);
   }
 
   public function get(path,opts={}) {
     arguments['verb'] = 'get';
+
     return request(argumentCollection=arguments);
   }
 
@@ -244,7 +243,8 @@ component accessors="true" {
     switch (selfOptions.mode) {
       case 'header':
         newOptions['headers'] = !structKeyExists(newOptions,'headers') ? {} : newOptions['headers'];
-        structAppend(newOptions['headers'],getHeaders());
+        structAppend(newOptions.headers,getClient_object().getConnection_opts().headers);
+        structAppend(newOptions.headers,getHeaders());
         break;
       case 'query':
         newOptions['params'] = !structKeyExists(newOptions,'params') ? {} : newOptions['params'];
