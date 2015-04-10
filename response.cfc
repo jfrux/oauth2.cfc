@@ -35,7 +35,6 @@ component accessors="true" {
 
     return this;
   }
-
   public function headers() {
     return structKeyExists(getResponse(),'responseheader') ? getResponse()['headers'] : {};
   }
@@ -45,7 +44,7 @@ component accessors="true" {
   }
 
   public function status() {
-    return structKeyExists(getResponse(),'status_code') ? getResponse()['status_code'] : {};
+    return structKeyExists(getResponse(),'statuscode') ? getResponse()['statuscode'] : {};
   }
 
   public function body() {

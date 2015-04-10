@@ -51,7 +51,7 @@ component accessors="true"
   * @validateParams { minLength=1 }
   * @hint The OAuth2 provider site host
   **/
-  property name="site" default="/oauth/authorize";
+  property name="site" default="";
 
   /**
   * @getter true
@@ -122,7 +122,7 @@ component accessors="true"
     };
 
     var opts = duplicate(arguments.options);
-    var ssl = false;
+    var ssl = true;
     structAppend(
       opts,
       default_options
@@ -152,77 +152,162 @@ component accessors="true"
 
   //MAKE STANDARD HTTP REQUEST
   public function request(verb,theUrl,opts = {}) {
-    var conn = new Http();
-    var requestUrl = "";
-    var response = {};
-
-    <!--- if (verb EQ "post") {
-      //add body fields for post
-      if (structCount(arguments.opts.fields)) {
-        for (key in arguments.opts.fields) {
-          conn.addParam(type='formfield',name=key,value=arguments.opts.fields[key]);
-        }
-
-        structDelete(arguments.opts,'fields');
-      }
-    } --->
-
-    // add headers
-    if (structCount(arguments.opts.headers)) {
-      for ((key) in arguments.opts.headers) {
-        conn.addParam(type='header',name=key,value=arguments.opts.headers[key]);
-      }
-
+    var loc = {};
+    loc.request = {};
+    loc.request.method = UCASE(arguments.verb);
+    if (structKeyExists(arguments.opts,'headers')) {
+      loc.request.headers = arguments.opts.headers;
       structDelete(arguments.opts,'headers');
     }
+
     if (structKeyExists(arguments.opts,'body')) {
-      <!--- conn.addParam(type='header',name='Content-Type',value='application.json; charset=UTF-8'); --->
-      conn.addParam(type='body',value=arguments.opts.body);
+      loc.request.body = CreateObject("java", "java.lang.String").Init(JavaCast("string",arguments.opts.body));
       structDelete(arguments.opts,'body');
     }
 
+    if (structKeyExists(arguments.opts,'fields')) {
+      loc.request.fields = arguments.opts.fields;
+      structDelete(arguments.opts,'fields');
+
+      loc.requestBody = "";
+      //add body fields for post
+      for (key in loc.request.fields) {
+        loc.requestBody = loc.requestBody & key & "=" & loc.request.fields[key] & "&";
+        <!--- loc.conn.addParam(type='formfield',name=key,value=arguments.opts.fields[key]); --->
+      }
+
+      //convert to java string object
+      loc.request.body = CreateObject("java", "java.lang.String").Init(JavaCast("string",loc.requestBody));
+    }
+
     if(arguments.theUrl CONTAINS "http") {
-      requestUrl = arguments.theUrl;
+      loc.requestUrl = arguments.theUrl;
     } else {
-      requestUrl = build_url(arguments.path,arguments.opts);
+      loc.requestUrl = build_url(arguments.path,arguments.opts);
     }
 
-    conn.setUrl(requestUrl);
-    conn.setMethod(verb);
-    conn.setRedirect(true);
+    loc.objUrl = createobject("java","java.net.URL").init(loc.requestUrl);
+    //OPENS CONNECTION
+    loc.conn = loc.objUrl.openConnection();
+    loc.conn.setFollowRedirects(true);
+    //configure the request
+    if (structKeyExists(loc.request,'body')) {
+      loc.conn.setDoOutput(true);
+    }
 
-    httpResponse = conn.send().getPrefix();
+    loc.conn.setUseCaches(false);
+    loc.conn.setRequestMethod(loc.request.method);
+
+    if (loc.request.method EQ "POST" AND structKeyExists(loc.request,'fields') AND structCount(loc.request.fields)) {
+      loc.conn.setRequestProperty("Content-Type", "application/x-www-form-urlencoded;");
+    }
+
+    // add headers
+    if (structCount(loc.request.headers)) {
+      for ((key) in loc.request.headers) {
+        loc.conn.setRequestProperty(key, loc.request.headers[key]);
+      }
+    }
+
+    if (structKeyExists(loc.request,'body')) {
+      loc.ostream = loc.conn.getOutputStream();
+      if (structKeyExists(loc.request,'body')) {
+        loc.ostream.write(loc.request.body.getBytes());
+      }
+      loc.ostream.flush();
+      loc.ostream.Close();
+    }
+    loc.responseObj = {};
+
+    //TRY THE REQUEST...
+    try {
+      loc.inS =createobject("java","java.io.InputStreamReader").init(loc.conn.getInputStream());
+
+    } catch(any errorObj) {
+      loc.responseObj.status_code = loc.conn.getResponseCode();
+      if (isEmpty(loc.responseObj.status_code)) {
+        throw (
+          message = "Connection to the oAuth2 provider failed.",
+          type = "oauth2.no_response"
+        )
+      }
+      if (listFind('301,302,303,307',loc.responseObj.status_code)) {
+
+        abort;
+      } else if (isValid("range", loc.responseObj.status_code, 200, 299)) {
+        return response
+      } else if (isValid("range", loc.responseObj.status_code, 400,499)) {
+
+        if (loc.responseObj.status_code EQ "401") {
+          errorObj = "Unauthorized";
+        }
+        throw (
+          message = errorObj,
+          type = "oauth2.#loc.responseObj.status_code#",
+          errorCode = loc.responseObj.status_code
+        )
+      } else if (isValid("range", loc.responseObj.status_code, 500,599)) {
+        <!--- writeOutput(""); --->
+        abort;
+      } else {
+        throw "Unhandled status code value of #response.status_code#";
+      }
+    }
+    loc.responseObj['Header'] = "";
+
+    loc.responseObj['Responseheader'] = {};
+
+    loc.respHeaders = loc.conn.getHeaderFields().entrySet();
+    loc.respHeadersArray = loc.respHeaders.toArray();
+    for (i=1;i <= arrayLen(loc.respHeadersArray); i++) {
+      loc.respHeaderValue = "";
+      if (isNull(loc.respHeadersArray[i].getKey())) {
+        //split http version and status code;
+        loc.respHeaderKey = "";
+        loc.respHeaderValue = loc.respHeadersArray[i].getValue()[1];
+        loc.responseObj['Header'] = loc.responseObj['Header'] & "#loc.respHeaderKey#: #loc.respHeaderValue#";
+        loc.responseObj.responseheader['Http-Version'] = listFirst(loc.respHeaderValue," ");
+        loc.responseObj.responseheader['Status_Code'] = getToken(loc.respHeaderValue,2," ");
+        loc.responseObj['Statuscode'] = right(loc.respHeaderValue,len(loc.respHeaderValue)-find(" ",loc.respHeaderValue))
+      } else {
+        loc.respHeaderKey = loc.respHeadersArray[i].getKey();
+        loc.respHeaderValue = loc.respHeadersArray[i].getValue()[1];
+        loc.responseObj.responseheader[loc.respHeaderKey] = loc.respHeaderValue;
+
+        loc.responseObj['Header'] = loc.responseObj['Header'] & "#loc.respHeaderKey#: #loc.respHeaderValue#";
+
+        if (loc.respHeaderKey EQ "Content-Type") {
+          loc.responseObj['Mimetype'] = listFirst(loc.respHeaderValue,';');
+        }
+      }
+
+    }
+
+    <!--- loc.responseObj['status_code'] = loc.conn.getResponseCode(); --->
+    loc.inVar = createObject("java","java.io.BufferedReader").init(loc.inS);
+
+    loc.responseObj['Filecontent'] = "";
+    <!--- loc.builder = createObject("java","java.lang.StringBuilder").init(javacast("int",1000)); --->
+    loc.line    = "";
+    do
+    {
+       loc.line = loc.inVar.readLine();
+       loc.lineCheck = isDefined("loc.line");
+       if(loc.lineCheck)
+       {
+         loc.responseObj.filecontent = loc.responseObj.filecontent & loc.line;
+       }
+    } while(loc.lineCheck);
+
+
+    <!--- httpResponse = conn.send().getPrefix(); --->
     <!--- if(verb EQ "put") {
-      writeDump(var="#conn.send()#",abort=true,format="text");
+
     } --->
-    response = new OAuth2.Response(httpResponse,arguments.opts);
+    <!--- writeDump(var=#loc.responseObj#,abort=true); --->
+    loc.response = new OAuth2.Response(loc.responseObj,arguments.opts);
 
-    if (isEmpty(response.status())) {
-      throw (
-        message = "Connection to the oAuth2 provider failed.",
-        type = "oauth2.no_response"
-      )
-    }
-    if (listFind('301,302,303,307',response.status())) {
-      //todo redirect logic here
-      // since setRedirect(true) it shouldn't ever show this
-      abort;
-    } else if (isValid("range", response.status(), 200, 299)) {
-      return response
-    } else if (isValid("range", response.status(), 400,499)) {
-      errorObj = response.body();
-      throw (
-        message = errorObj,
-        type = "oauth2.#response.status()#",
-        errorCode = response.status()
-      )
-    } else if (isValid("range", response.status(), 500,599)) {
-      writeOutput(response.body());
-      abort;
-    } else {
-      throw "Unhandled status code value of #response.status_code#";
-    }
-
+    return loc.response;
   }
 
   //GET ACCESS_TOKEN
