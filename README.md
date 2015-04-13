@@ -2,6 +2,11 @@
 
 A ColdFusion Component (CFC) wrapper for the OAuth 2.0 specification.
 
+## Preface
+Some of this documentation may not be completely functional.  THe basis of consuming an oAuth2 Provider is covered in the current codebase but may have compatibily issues with some versions of ACF or Railo.
+
+I had to opt out of using CFHTTP due to some versions of ACF / Railo not providing proper SSL support.  Since most OAuth2 Providers now have strict SSL requirements I've chosen to implement roughly with java::net::URL method. 
+
 ## Installation
 Clone or download and extract the directory into your component directory under a directory titled 'oauth2'.
 Create a per application mapping such as:
@@ -53,9 +58,9 @@ authorizeUrl = oauth2client.auth_code().getAuthorize_url({ redirect_url: 'http:/
 location(authorizeUrl); //redirect user to authorize_url
 
 //once they arrive at your callback url you will need to request the token with your retrieved code.
-token = client.auth_code.get_token('authorization_code_value', :redirect_uri => 'http://localhost:8080/oauth2/callback', :headers => {'Authorization' => 'Basic some_password'})
-response = token.get('/api/resource', :params => { 'query_foo' => 'bar' })
-response.class.name
+token = oauth2client.auth_code().get_token(code = 'authorization_code_value', redirect_uri = 'http://localhost:8080/oauth2/callback', headers = {'Authorization' => 'Basic some_password'})
+response = token.get('/api/resource', params = { 'query_foo' = 'bar' })
+writeDump(var="#response#");
 // returns OAuth2::Response
 ```
 
@@ -93,26 +98,28 @@ Currently the Authorization Code, Implicit, Resource Owner Password Credentials,
 authentication grant types have helper strategy classes that simplify client
 use.  They are available via the #auth_code, #implicit, #password, #client_credentials, and #assertion methods respectively.
 
+TODO: THIS SECTION NEEDS TESTING
+
 ```javascript
-auth_url = client.auth_code.authorize_url(:redirect_uri => 'http://localhost:8080/oauth/callback');
-token = client.auth_code.get_token('code_value', :redirect_uri => 'http://localhost:8080/oauth/callback');
+auth_url = oauth2client.auth_code().authorize_url(:redirect_uri => 'http://localhost:8080/oauth/callback');
+token = oauth2client.auth_code().get_token('code_value', :redirect_uri => 'http://localhost:8080/oauth/callback');
 
-auth_url = client.implicit.authorize_url(:redirect_uri => 'http://localhost:8080/oauth/callback');
+auth_url = oauth2client.implicit().authorize_url(:redirect_uri => 'http://localhost:8080/oauth/callback');
 //get the token params in the callback and
-token = OAuth2::AccessToken.from_kvform(client, query_string);
+token = token.from_kvform(oauth2client, query_string);
 
-token = client.password.get_token('username', 'password');
+token = oauth2client.password().get_token('username', 'password');
 
-token = client.client_credentials.get_token();
+token = oauth2client.client_credentials().get_token();
 
-token = client.assertion.get_token(assertion_params);
+token = oauth2client.assertion().get_token(assertion_params);
 ```
 
 If you want to specify additional headers to be sent out with the
 request, add a 'headers' hash under 'params':
 
 ```javascript
-token = client.auth_code.get_token(
+token = oauth2client.auth_code().get_token(
     code = 'code_value',
     redirect_uri = 'http://localhost:8080/oauth/callback', 
     headers = {'Some': 'Header'}
