@@ -137,4 +137,5 @@ implementations:
 * Railo 3,4
 
 ## License
-[license]: LICENSE.md
+
+[MIT](http://choosealicense.com/licenses/mit/)
