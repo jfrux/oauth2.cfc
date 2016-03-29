@@ -190,8 +190,7 @@ component accessors="true"
     } else {
       loc.requestUrl = build_url(arguments.path,arguments.opts);
     }
-writeDump(var=loc, format = 'text', output='/home/mathieu/Documents/mathieu.log');
-//abort;
+
     loc.objUrl = createobject("java","java.net.URL").init(loc.requestUrl);
     //OPENS CONNECTION
     loc.conn = loc.objUrl.openConnection();
