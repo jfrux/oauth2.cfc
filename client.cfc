@@ -165,6 +165,11 @@ component accessors="true"
       structDelete(arguments.opts,'body');
     }
 
+    if (structKeyExists(arguments.opts,'json')) {
+      loc.request.body = serializeJSON(arguments.opts.json);
+      structDelete(arguments.opts,'json');
+    }
+
     if (structKeyExists(arguments.opts,'fields')) {
       loc.request.fields = arguments.opts.fields;
       structDelete(arguments.opts,'fields');
@@ -185,7 +190,8 @@ component accessors="true"
     } else {
       loc.requestUrl = build_url(arguments.path,arguments.opts);
     }
-
+writeDump(var=loc, format = 'text', output='/home/mathieu/Documents/mathieu.log');
+//abort;
     loc.objUrl = createobject("java","java.net.URL").init(loc.requestUrl);
     //OPENS CONNECTION
     loc.conn = loc.objUrl.openConnection();
@@ -371,7 +377,6 @@ component accessors="true"
 
   public function build_authorize_url(params = {}) {
     var theUrl = "#getSite()##getAuthorize_url()#?#buildParamString(arguments.params)#";
-
     return theUrl;
   };
 
