@@ -1,0 +1,51 @@
+{
+    "name":"oauth2.cfc",
+    "version":"0.1.0",
+    "author":"Joshua F. Rountree <joshua@livinghype.com>",
+    "location":"joshuairl/oauth2.cfc",
+    "createPackageDirectory":true,
+    "homepage":"https://www.livinghype.com/",
+    "documentation":"https://github.com/joshuairl/oauth2.cfc",
+    "type":"modules",
+    "repository":{
+        "type":"git",
+        "URL":"https://github.com/joshuairl/oauth2.cfc.git"
+    },
+    "bugs":"https://github.com/joshuairl/oauth2.cfc/issues",
+    "slug":"oauth2",
+    "shortDescription":"An oAuth2 Consumer Component for CF",
+    "description":"An oAuth2 Consumer Component for CF",
+    "keywords":[
+        "oAuth2",
+        "client",
+        "oAuth",
+        "consumer",
+        "tool",
+        "component",
+        "cfc",
+        "module",
+        "social-login",
+        "social",
+        "connect",
+        "authentication",
+        "authorization"
+    ],
+    "private":false,
+    "projectURL":"https://github.com/joshuairl/oauth2.cfc",
+    "license":[
+        {
+            "type":"MIT",
+            "URL":"https://choosealicense.com/licenses/mit/"
+        }
+    ],
+    "contributors":[
+        "Joshua F. Rountree <joshua@livinghype.com",
+        "MCORN <https://github.com/MCORN>",
+        "Joseph Dykstra <https://github.com/ArtskydJ>"
+    ],
+    "ignore":[
+        "**/.*",
+        "test",
+        "tests"
+    ]
+}
