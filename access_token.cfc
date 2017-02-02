@@ -178,14 +178,13 @@ component accessors="true" {
 
   public function request(verb,path,opts = {}) {
     var client_object = getClient_object();
-
     arguments.opts = structureOptions(arguments.opts);
+
     return client_object.request(argumentCollection=arguments);
   }
 
   public function get(path,opts={}) {
     arguments['verb'] = 'get';
-
     return request(argumentCollection=arguments);
   }
 
@@ -243,7 +242,6 @@ component accessors="true" {
     switch (selfOptions.mode) {
       case 'header':
         newOptions['headers'] = !structKeyExists(newOptions,'headers') ? {} : newOptions['headers'];
-        structAppend(newOptions.headers,getClient_object().getConnection_opts().headers);
         structAppend(newOptions.headers,getHeaders());
         break;
       case 'query':

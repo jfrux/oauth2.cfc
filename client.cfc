@@ -165,6 +165,11 @@ component accessors="true"
       structDelete(arguments.opts,'body');
     }
 
+    if (structKeyExists(arguments.opts,'json')) {
+      loc.request.body = serializeJSON(arguments.opts.json);
+      structDelete(arguments.opts,'json');
+    }
+
     if (structKeyExists(arguments.opts,'fields')) {
       loc.request.fields = arguments.opts.fields;
       structDelete(arguments.opts,'fields');
@@ -371,7 +376,6 @@ component accessors="true"
 
   public function build_authorize_url(params = {}) {
     var theUrl = "#getSite()##getAuthorize_url()#?#buildParamString(arguments.params)#";
-
     return theUrl;
   };
 
