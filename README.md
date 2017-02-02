@@ -8,9 +8,24 @@ Some of this documentation may not be completely functional.  THe basis of consu
 I had to opt out of using CFHTTP due to some versions of ACF / Railo not providing proper SSL support.  Since most OAuth2 Providers now have strict SSL requirements I've chosen to implement roughly with java::net::URL method. 
 
 ## Installation
-Clone or download and extract the directory into your component directory under a directory titled 'oauth2'.
-Create a per application mapping such as:
-```javascript
+### Installing with CommandBox (NEW!)
+
+```shell
+$ cd ~/MyAwesomeProject
+$ box install oauth2.cfc
+```
+
+### Installing Manually
+Clone or download and extract the directory into your component directory.
+
+```shell
+$ git clone https://github.com/joshuairl/oauth2.cfc ./my_components/oauth2
+```
+
+### Mapping it in your application
+
+An example of this within your Application.cfc would look like this:
+```coldfusion
 // Application.cfc
 this.mappings["/oauth2"] = "/my_components/oauth2";
 ```
@@ -25,12 +40,6 @@ this.mappings["/oauth2"] = "/my_components/oauth2";
 [wiki]: https://wiki.github.com/joshuairl/oauth2.cfc
 
 ## Usage Examples
-
-### Install Example
-```javascript
-// Application.cfc
-this.mappings["/oauth2"] = "/my_components/oauth2";
-```
 
 ### Client Instantiation
 ```javascript
